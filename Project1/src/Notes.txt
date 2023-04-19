@@ -1,0 +1,5 @@
+the main differences between the code in FileTransfer__built-inMonitor and the code in FileTransfer_reference:
+	1: the former applies the built-in Java monitor while the latter uses the monitor coming along with the textbook.
+	2: the Java file that implements the monitor in the latter has included other classes so that this Java file can be executed independently to test the monitor. The monitor Java file in the former does not have. 
+	
+Importance: the monitor provided in the textbook depends on classes like TDThread and monitorSC. So to use it, you have to add ModernMultithreading.jar in the class path of your project. In addition, the monitors inherited from monitorSC must be put in the default package; otherwise there would be error as there is no way to import the dependent classes.
