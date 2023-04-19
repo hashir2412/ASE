@@ -1,46 +1,67 @@
+import java.util.ArrayList;
+import java.util.List;
 
 public class PacketBoundedBufferMonitor {
-	private int fullSlots = 0; 			
-	private int capacity = 0;		
-	private Packet[] buffer=null;
+    private int fullSlots = 0;
+    private int capacity = 0;
+    private Packet[] buffer = null;
     private int in = 0, out = 0;
+    private List<TransferProcess> transferProcesses = new ArrayList<>();
 
-	public PacketBoundedBufferMonitor (int capacity) {		
-		this.capacity = capacity;	
-		this.buffer=new Packet[capacity];
-	}
-		
-	public synchronized void deposit(Packet pkt) {	
-		while (fullSlots == capacity)  {
-			try {
-				wait();
-			}catch(InterruptedException e) {
-				e.printStackTrace();
-			}		
-		}
-		this.buffer[in] =pkt;
-		in = (in + 1) % capacity;
-		++fullSlots;
-		
-		notifyAll();	
-	}
+    public PacketBoundedBufferMonitor(int capacity) {
+        this.capacity = capacity;
+        this.buffer = new Packet[capacity];
+    }
 
-	public synchronized Packet withdraw() {
-		
-		Packet pkt;
-		while (fullSlots == 0) {
-			try {
-				wait();
-			}catch(InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-		pkt = this.buffer[out];        
-		out = (out + 1) % capacity;
-		--fullSlots;
-		
-		notifyAll();		
-		return pkt;
-	}
-	
+    public synchronized void deposit(Packet pkt) {
+        while (fullSlots == capacity) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        this.buffer[in] = pkt;
+        in = (in + 1) % capacity;
+        ++fullSlots;
+
+        TransferProcess process = new TransferProcess(pkt.getFileName(), pkt.getSequenceNumber());
+        transferProcesses.add(process);
+
+        notifyAll();
+    }
+
+    public synchronized Packet withdraw() {
+
+        Packet pkt;
+        while (fullSlots == 0) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        pkt = this.buffer[out];
+        out = (out + 1) % capacity;
+        --fullSlots;
+
+        for (TransferProcess process : transferProcesses) {
+            if (process.getSequenceNumber() == pkt.getSequenceNumber()) {
+                transferProcesses.remove(process);
+                break;
+            }
+        }
+
+        notifyAll();
+        return pkt;
+    }
+
+    public synchronized void deleteProcess(String fileName) {
+        for (TransferProcess process : transferProcesses) {
+            if (process.getFileName().equals(fileName)) {
+                transferProcesses.remove(process);
+                break;
+            }
+        }
+    }
 }
